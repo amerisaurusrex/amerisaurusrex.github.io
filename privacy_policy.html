@@ -5,57 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy – Koh Samui Travel Companion</title>
     <style>
-        body {font-family:'Segoe UI',Arial,sans-serif;background:#0a0a0a;color:#e0e0e0;margin:0;padding:40px 20px;min-height:100vh;line-height:1.7;}
-        .container {max-width:800px;margin:0 auto;background:#111;padding:40px;border-radius:16px;box-shadow:0 0 30px rgba(0,200,83,0.2);}
-        h1 {font-size:2.8em;background:linear-gradient(90deg,#00c853,#64dd17);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:10px;}
-        h2 {color:#00e676;margin-top:40px;}
-        a {color:#00c853;text-decoration:none;}
-        a:hover {text-decoration:underline;}
-        ul {padding-left:20px;}
-        li {margin:12px 0;}
+        :root { --green: #00c853; --lightgreen: #64dd17; }
+        body {font-family:'Segoe UI',Arial,sans-serif;background:#0a0a0a;color:#e0e0e0;margin:0;padding:20px;min-height:100vh;line-height:1.7;}
+        .skip-link {position:absolute;top:-40px;left:6px;background:var(--green);color:#000;padding:8px;border-radius:4px;z-index:100;}
+        .skip-link:focus {top:6px;}
+        .container {max-width:800px;margin:0 auto;background:#111;padding:30px 25px;border-radius:16px;box-shadow:0 0 30px rgba(0,200,83,0.2);}
+        h1 {font-size:2.4em;background:linear-gradient(90deg,var(--green),var(--lightgreen));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin:0 0 10px;}
+        h2 {font-size:1.6em;color:#00e676;margin:40px 0 15px;}
+        p, li {font-size:1.05em;}
+        a {color:var(--green);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;}
+        a:focus, a:hover {outline:2px solid var(--green);outline-offset:2px;}
+        ul {padding-left:22px;}
+        li {margin:14px 0;}
         .footer {margin-top:80px;text-align:center;color:#777;font-size:0.9em;}
-        .footer a {color:#00c853;}
+        .footer a {color:var(--green);}
+        @media (max-width:480px) {
+            .container {padding:25px 18px;}
+            h1 {font-size:2em;}
+            h2 {font-size:1.5em;}
+            p, li {font-size:1.1em;}
+        }
+        @media (prefers-reduced-motion: reduce) { * {transition:none !important;animation:none !important;} }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Privacy Policy</h1>
-    <p style="text-align:center;color:#aaa;"><strong>Last updated: November 23, 2025</strong></p>
+    <a href="#main" class="skip-link">Skip to main content</a>
 
-    <p><strong>Koh Samui Travel Companion</strong> is created and maintained by Amerisaurus Rex.</p>
+    <div class="container" role="region" aria-labelledby="privacy-title">
+        <header>
+            <h1 id="privacy-title">Privacy Policy</h1>
+            <p style="text-align:center;color:#aaa;font-size:0.95em;"><strong>Last updated: November 23, 2025</strong></p>
+        </header>
 
-    <h2>1. Information We Collect</h2>
-    <ul>
-        <li><strong>Location data</strong> (optional) – Only when you use map or “near me” features.</li>
-        <li><strong>Photos / Media</strong> (optional) – Only if you save your own pictures in the journal.</li>
-        <li><strong>Crash & analytics</strong> – Anonymous data via Google Firebase to improve the app.</li>
-    </ul>
+        <main id="main">
+            <section aria-labelledby="intro">
+                <p><strong>Koh Samui Travel Companion</strong> is created and maintained by Amerisaurus Rex.</p>
+            </section>
 
-    <h2>2. Information We Do NOT Collect</h2>
-    <ul>
-        <li>No account or login required</li>
-        <li>No name, email, or personal identifiers</li>
-        <li>No data is sold or shared for marketing</li>
-    </ul>
+            <section aria-labelledby="collect">
+                <h2 id="collect">1. Information We Collect</h2>
+                <ul>
+                    <li><strong>Location data</strong> (optional) – Only when you use map or “near me” features.</li>
+                    <li><strong>Photos / Media</strong> (optional) – Only if you save your own pictures in the journal.</li>
+                    <li><strong>Crash & analytics</strong> – Anonymous data via Google Firebase to improve the app.</li>
+                </ul>
+            </section>
 
-    <h2>3. Third-Party Services</h2>
-    <ul>
-        <li>Google Maps SDK (follows Google’s privacy policy)</li>
-        <li>Firebase Analytics & Crashlytics (Google’s privacy policy applies)</li>
-    </ul>
+            <section aria-labelledby="not-collect">
+                <h2 id="not-collect">2. Information We Do NOT Collect</h2>
+                <ul>
+                    <li>No account or login required</li>
+                    <li>No name, email, or personal identifiers</li>
+                    <li>No data is sold or shared for marketing</li>
+                </ul>
+            </section>
 
-    <h2>4. Data Storage</h2>
-    <p>All favorites, notes, and photos are stored locally on your device only.</p>
+            <section aria-labelledby="third-party">
+                <h2 id="third-party">3. Third-Party Services</h2>
+                <ul>
+                    <li>Google Maps SDK (follows Google’s privacy policy)</li>
+                    <li>Firebase Analytics & Crashlytics (Google’s privacy policy applies)</li>
+                </ul>
+            </section>
 
-    <h2>5. Children’s Privacy</h2>
-    <p>The app is not directed to children under 13.</p>
+            <section aria-labelledby="storage">
+                <h2 id="storage">4. Data Storage</h2>
+                <p>All favorites, notes, and photos are stored locally on your device only.</p>
+            </section>
 
-    <h2>6. Contact</h2>
-    <p>Email: <a href="mailto:support@amerisaurusrex.com">support@amerisaurusrex.com</a></p>
+            <section aria-labelledby="children">
+                <h2 id="children">5. Children’s Privacy</h2>
+                <p>The app is not directed to children under 13.</p>
+            </section>
 
-    <div class="footer">
-        <p>© 2025 Amerisaurus Rex • <a href="/">← Back to home</a></p>
+            <section aria-labelledby="contact">
+                <h2 id="contact">6. Contact</h2>
+                <p>Email: <a href="mailto:support@amerisaurusrex.com">support@amerisaurusrex.com</a></p>
+            </section>
+        </main>
+
+        <footer class="footer" role="contentinfo">
+            <p>© 2025 Amerisaurus Rex • <a href="/">← Back to home</a></p>
+        </footer>
     </div>
-</div>
 </body>
 </html>
