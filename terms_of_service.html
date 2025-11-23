@@ -5,49 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms of Service – Koh Samui Travel Companion</title>
     <style>
-        body {font-family:'Segoe UI',Arial,sans-serif;background:#0a0a0a;color:#e0e0e0;margin:0;padding:40px 20px;min-height:100vh;line-height:1.7;}
-        .container {max-width:800px;margin:0 auto;background:#111;padding:40px;border-radius:16px;box-shadow:0 0 30px rgba(0,200,83,0.2);}
-        h1 {font-size:2.8em;background:linear-gradient(90deg,#00c853,#64dd17);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:10px;}
-        h2 {color:#00e676;margin-top:40px;}
-        a {color:#00c853;text-decoration:none;}
-        a:hover {text-decoration:underline;}
-        ul {padding-left:20px;}
-        li {margin:12px 0;}
+        :root { --green: #00c853; --lightgreen: #64dd17; }
+        body {font-family:'Segoe UI',Arial,sans-serif;background:#0a0a0a;color:#e0e0e0;margin:0;padding:20px;min-height:100vh;line-height:1.7;}
+        .skip-link {position:absolute;top:-40px;left:6px;background:var(--green);color:#000;padding:8px;border-radius:4px;z-index:100;}
+        .skip-link:focus {top:6px;}
+        .container {max-width:800px;margin:0 auto;background:#111;padding:30px 25px;border-radius:16px;box-shadow:0 0 30px rgba(0,200,83,0.2);}
+        h1 {font-size:2.4em;background:linear-gradient(90deg,var(--green),var(--lightgreen));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin:0 0 10px;}
+        h2 {font-size:1.6em;color:#00e676;margin:40px 0 15px;}
+        p, li {font-size:1.05em;}
+        a {color:var(--green);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;}
+        a:focus, a:hover {outline:2px solid var(--green);outline-offset:2px;}
+        ul {padding-left:22px;}
+        li {margin:14px 0;}
         .footer {margin-top:80px;text-align:center;color:#777;font-size:0.9em;}
-        .footer a {color:#00c853;}
+        .footer a {color:var(--green);}
+        @media (max-width:480px) {
+            .container {padding:25px 18px;}
+            h1 {font-size:2em;}
+            h2 {font-size:1.5em;}
+            p, li {font-size:1.1em;}
+        }
+        @media (prefers-reduced-motion: reduce) { * {transition:none !important;animation:none !important;} }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Terms of Service</h1>
-    <p style="text-align:center;color:#aaa;"><strong>Last updated: November 23, 2025</strong></p>
+    <a href="#main" class="skip-link">Skip to main content</a>
 
-    <p>By using <strong>Koh Samui Travel Companion</strong>, you agree to these terms.</p>
+    <div class="container" role="region" aria-labelledby="terms-title">
+        <header>
+            <h1 id="terms-title">Terms of Service</h1>
+            <p style="text-align:center;color:#aaa;font-size:0.95em;"><strong>Last updated: November 23, 2025</strong></p>
+        </header>
 
-    <h2>1. License</h2>
-    <p>You are granted a limited, non-exclusive license to use the app on your devices.</p>
+        <main id="main">
+            <section aria-labelledby="intro">
+                <p>By using <strong>Koh Samui Travel Companion</strong>, you agree to these terms.</p>
+            </section>
 
-    <h2>2. Acceptable Use</h2>
-    <ul>
-        <li>No reverse-engineering, copying, or distribution</li>
-        <li>No illegal or harmful use</li>
-    </ul>
+            <section aria-labelledby="license">
+                <h2 id="license">1. License</h2>
+                <p>You are granted a limited, non-exclusive license to use the app on your devices.</p>
+            </section>
 
-    <h2>3. Third-Party Content</h2>
-    <p>Maps, listings, and schedules come from third parties. We do not guarantee accuracy.</p>
+            <section aria-labelledby="use">
+                <h2 id="use">2. Acceptable Use</h2>
+                <ul>
+                    <li>No reverse-engineering, copying, or distribution</li>
+                    <li>No illegal or harmful use</li>
+                </ul>
+            </section>
 
-    <h2>4. Limitation of Liability</h2>
-    <p>The app is provided “as-is”. We are not liable for inaccurate information or any damages.</p>
+            <section aria-labelledby="content">
+                <h2 id="content">3. Third-Party Content</h2>
+                <p>Maps, listings, and schedules come from third parties. We do not guarantee accuracy.</p>
+            </section>
 
-    <h2>5. Changes & Governing Law</h2>
-    <p>We may update these terms. Continued use means acceptance. Governed by U.S. law.</p>
+            <section aria-labelledby="liability">
+                <h2 id="liability">4. Limitation of Liability</h2>
+                <p>The app is provided “as-is”. We are not liable for inaccurate information or any damages.</p>
+            </section>
 
-    <h2>6. Contact</h2>
-    <p>Email: <a href="mailto:support@amerisaurusrex.com">support@amerisaurusrex.com</a></p>
+            <section aria-labelledby="changes">
+                <h2 id="changes">5. Changes & Governing Law</h2>
+                <p>We may update these terms. Continued use means acceptance. Governed by U.S. law.</p>
+            </section>
 
-    <div class="footer">
-        <p>© 2025 Amerisaurus Rex • <a href="/">← Back to home</a></p>
+            <section aria-labelledby="contact">
+                <h2 id="contact">6. Contact</h2>
+                <p>Email: <a href="mailto:support@amerisaurusrex.com">support@amerisaurusrex.com</a></p>
+            </section>
+        </main>
+
+        <footer class="footer" role="contentinfo">
+            <p>© 2025 Amerisaurus Rex • <a href="/">← Back to home</a></p>
+        </footer>
     </div>
-</div>
 </body>
 </html>
