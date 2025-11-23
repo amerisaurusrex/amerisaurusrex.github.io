@@ -3,20 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amerisaurus Rex - Apps & More</title>
+    <title>Koh Samui Travel Companion – Amerisaurus Rex</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0f8ff; color: #333; padding: 50px; }
-        h1 { color: #228b22; font-size: 3em; }
-        p { font-size: 1.2em; }
-        .dino { font-size: 4em; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            text-align: center; 
+            background: #0a0a0a; 
+            color: #e0e0e0; 
+            margin: 0; 
+            padding: 40px 20px; 
+            min-height: 100vh;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .logo { 
+            max-width: 340px; 
+            width: 90%; 
+            margin: 20px auto; 
+            display: block; 
+            filter: drop-shadow(0 0 10px rgba(0,200,100,0.3));
+        }
+        h1 { 
+            font-size: 3em; 
+            margin: 20px 0; 
+            background: linear-gradient(90deg, #00c853, #64dd17);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p { font-size: 1.3em; line-height: 1.6; color: #bbbbbb; }
+        .btn {
+            display: inline-block;
+            background: #00c853;
+            color: #fff;
+            padding: 16px 36px;
+            margin: 30px 10px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 4px 15px rgba(0,200,83,0.4);
+            transition: all 0.3s;
+        }
+        .btn:hover { 
+            background: #00e676; 
+            transform: translateY(-3px); 
+            box-shadow: 0 8px 25px rgba(0,200,83,0.6);
+        }
+        footer { margin-top: 100px; font-size: 0.9em; color: #777; }
+        footer a { color: #00c853; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        @media (max-width: 600px) { 
+            h1 { font-size: 2.3em; } 
+            .btn { display: block; margin: 20px auto; width: fit-content; }
+        }
     </style>
 </head>
 <body>
-    <div style="margin: 30px 0;">
-    <img src="LOGOgithub.png" alt="Amerisaurus Rex" style="max-width: 300px; width: 100%;">
-</div>
-    <h1>Welcome to Amerisaurus Rex!</h1>
-    <p>Roaring into apps and dev adventures. Check back for updates—or hit the Play Store for my latest creations.</p>
-    <p><a href="https://play.google.com/store/apps/developer?id=YourDevName">View My Apps</a></p>
+    <div class="container">
+        <img src="LOGOgithub.png" alt="Amerisaurus Rex" style="max-width: 300px; width: 100%;">
+        <h1>Koh Samui Travel Companion</h1>
+        <p>Your offline-ready guide to the best beaches, food, ferries, and secret spots on Koh Samui</p>
+
+        <a href="https://play.google.com/store/apps/details?id=YOUR_APP_PACKAGE_NAME" class="btn">
+            Get on Google Play
+        </a>
+
+        <footer>
+            <p>
+                <a href="/privacy_policy.html">Privacy Policy</a> • 
+                <a href="/terms_of_service.html">Terms of Service</a>
+            </p>
+            <p>© 2025 Amerisaurus Rex • <a href="mailto:support@amerisaurusrex.com">support@amerisaurusrex.com</a></p>
+        </footer>
+    </div>
 </body>
 </html>
