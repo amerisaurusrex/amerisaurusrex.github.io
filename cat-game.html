@@ -7,132 +7,175 @@
     <style>
         body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(#87CEEB,#98D8C8);font-family:Arial;overflow:hidden}
         canvas{border:2px solid #333;background:linear-gradient(#87CEEB 70%,#228B22);box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:100%;max-height:100vh}
-        .instructions{position:absolute;top:20px;left:50%;transform:translateX(-50%);color:#333;font-weight:bold;text-shadow:1px 1px 2px #fff}
-        .score{position:absolute;top:20px;right:20px;color:#333;font-size:24px;font-weight:bold;text-shadow:1px 1px 2px #fff}
+        .ui{position:absolute;top:20px;color:#333;font-weight:bold;text-shadow:1px 1px 2px #fff}
+        .instructions{left:50%;transform:translateX(-50%);font-size:18px}
+        .score{right:20px;font-size:24px}
+        .highscore{left:20px;font-size:18px}
     </style>
 </head>
 <body>
-    <div class="instructions">SPACE / UP / TAP to jump! Avoid falling!</div>
-    <div class="score">Score: <span id="score">0</span></div>
+    <div class="ui instructions">SPACE / UP / TAP to jump!</div>
+    <div class="ui score">Score: <span id="score">0</span></div>
+    <div class="ui highscore">Best: <span id="highscore">0</span></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
+        const scoreEl = document.getElementById('score');
+        const highscoreEl = document.getElementById('highscore');
 
-        // YOUR CAT – WORKING 100% RIGHT NOW
+        // Load high score
+        let highScore = parseInt(localStorage.getItem('catJumperHighScore') || '0');
+        highscoreEl.textContent = highScore;
+
+        // Your cat — now using the correct raw GitHub URL
         const catImg = new Image();
         catImg.src = 'https://raw.githubusercontent.com/amerisaurusrex/amerisaurusrex.github.io/main/cat.png';
-
         let useCustomImage = false;
         catImg.onload = () => useCustomImage = true;
-        catImg.onerror = () => useCustomImage = false;
 
-        // Cute fallback just in case
-        function drawFallbackCat(c) {
-            const x = c.x - gameState.camera.x;
-            const y = c.y;
+        // Fallback cute cat
+        function drawFallbackCat(x, y) {
             ctx.save();
             ctx.translate(x + 40, y + 35);
-            ctx.fillStyle = '#F8F8F8';
-            ctx.shadowColor = '#FFF';
-            ctx.shadowBlur = 20;
-            ctx.beginPath(); ctx.ellipse(0, 0, 35, 28, 0, 0, Math.PI*2); ctx.fill(); // body
-            ctx.beginPath(); ctx.ellipse(0, -20, 28, 25, 0, 0, Math.PI*2); ctx.fill(); // head
-            ctx.fillStyle = '#0a0'; ctx.beginPath(); ctx.arc(-10,-22,5,0,Math.PI*2); ctx.arc(10,-22,5,0,Math.PI*2); ctx.fill(); // eyes
+            ctx.fillStyle = '#f8f8f8'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 25;
+            ctx.beginPath(); ctx.ellipse(0, 0, 35, 28, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(0, -20, 28, 25, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#0a0'; ctx.beginPath(); ctx.arc(-10,-22,5,0,Math.PI*2); ctx.arc(10,-22,5,0,Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
         // Audio
         let audioCtx;
         function initAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}
-        function play(s,f,t=0.15,v=0.25){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(s,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(f,audioCtx.currentTime+t);g.gain.setValueAtTime(v,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+t);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+t);}
+        function play(s,f,t=0.15,v=0.25){
+            if(!audioCtx)return;
+            const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+            o.type='sine';o.frequency.setValueAtTime(s,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(f,audioCtx.currentTime+t);
+            g.gain.setValueAtTime(v,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+t);
+            o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+t);
+        }
         const jump=()=>play(600,1200,0.15,0.25);
         const land=()=>play(300,150,0.2,0.2);
         const fall=()=>play(700,100,0.7,0.3);
 
-        const gameState={cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,jumpPower:-20,gravity:0.7,speed:2.5},rooftops:[],camera:{x:0},score:0,gameOver:false,keys:{}};
-        let prevOnGround=false;
+        const game = {
+            cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,jumpPower:-20.5,gravity:0.75,speed:2.8},
+            rooftops:[],camera:{x:0},score:0,gameOver:false,keys:{}
+        };
+        let prevOnGround = false;
 
-        function generateRooftops(){gameState.rooftops=[];for(let i=0;i<25;i++)gameState.rooftops.push({x:i*160+200,y:480-Math.random()*80,width:140+Math.random()*80,height:30});}
+        function generateRooftops(){
+            game.rooftops = [];
+            for(let i=0;i<30;i++){
+                game.rooftops.push({
+                    x: i===0 ? 200 : game.rooftops[i-1].x + 160 + Math.random()*100, // VARIABLE GAPS: 160–260px
+                    y: 480 - Math.random()*90,
+                    width: 140 + Math.random()*80,
+                    height: 30
+                });
+            }
+        }
 
-        window.addEventListener('keydown',e=>{gameState.keys[e.code]=true;initAudio();});
-        window.addEventListener('keyup',e=>gameState.keys[e.code]=false);
-        canvas.addEventListener('touchstart',e=>{e.preventDefault();initAudio();if(gameState.gameOver)resetGame();else if(gameState.cat.onGround){gameState.cat.vy=gameState.cat.jumpPower;gameState.cat.onGround=false;jump();}});
+        window.addEventListener('keydown',e=>{game.keys[e.code]=true;initAudio();});
+        window.addEventListener('keyup',e=>game.keys[e.code]=false);
+        canvas.addEventListener('touchstart',e=>{e.preventDefault();initAudio();
+            if(game.gameOver)resetGame();
+            else if(game.cat.onGround){game.cat.vy=game.cat.jumpPower;game.cat.onGround=false;jump();}
+        });
 
         function drawCat(c){
-            const x = c.x - gameState.camera.x - 15;
+            const x = c.x - game.camera.x - 15;
             const y = c.y - 10;
             ctx.save();
-            ctx.shadowColor = '#ffffff';
-            ctx.shadowBlur = 30;
+            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30;
             if(useCustomImage && catImg.complete){
                 ctx.drawImage(catImg, x, y, c.width+30, c.height+30);
             }else{
-                drawFallbackCat(c);
+                drawFallbackCat(x, y);
             }
             ctx.restore();
         }
 
         function drawRooftop(r){
-            const rx = r.x - gameState.camera.x;
+            const rx = r.x - game.camera.x;
             ctx.fillStyle = '#8B4513'; ctx.fillRect(rx, r.y, r.width, r.height);
             ctx.fillStyle = '#A0522D'; ctx.fillRect(rx, r.y-5, r.width, 5);
         }
 
         function update(){
-            if(gameState.gameOver){if(gameState.keys['Space']||gameState.keys['ArrowUp'])resetGame();return;}
-            prevOnGround = gameState.cat.onGround;
-            if((gameState.keys['Space']||gameState.keys['ArrowUp'])&&gameState.cat.onGround){gameState.cat.vy=gameState.cat.jumpPower;gameState.cat.onGround=false;jump();}
-            gameState.cat.vy += gameState.cat.gravity;
-            gameState.cat.y += gameState.cat.vy;
-            gameState.cat.x += gameState.cat.speed;
-            gameState.camera.x = Math.max(0, gameState.cat.x - canvas.width/2);
+            if(game.gameOver){
+                if(game.keys['Space']||game.keys['ArrowUp']) resetGame();
+                return;
+            }
+            prevOnGround = game.cat.onGround;
+            if((game.keys['Space']||game.keys['ArrowUp'])&&game.cat.onGround){
+                game.cat.vy = game.cat.jumpPower; game.cat.onGround=false; jump();
+            }
+            game.cat.vy += game.cat.gravity;
+            game.cat.y += game.cat.vy;
+            game.cat.x += game.cat.speed;
+            game.camera.x = Math.max(0, game.cat.x - canvas.width/2);
 
-            gameState.cat.onGround = false;
-            for(let r of gameState.rooftops){
-                if(gameState.cat.x+gameState.cat.width > r.x && gameState.cat.x < r.x+r.width &&
-                   gameState.cat.y+gameState.cat.height > r.y && gameState.cat.y+gameState.cat.height-gameState.cat.vy <= r.y+5 && gameState.cat.vy>0){
-                    gameState.cat.y = r.y - gameState.cat.height;
-                    gameState.cat.vy = 0;
-                    gameState.cat.onGround = true;
+            game.cat.onGround = false;
+            for(let r of game.rooftops){
+                if(game.cat.x+game.cat.width > r.x && game.cat.x < r.x+r.width &&
+                   game.cat.y+game.cat.height > r.y && game.cat.y+game.cat.height-game.cat.vy <= r.y+5 && game.cat.vy>0){
+                    game.cat.y = r.y - game.cat.height;
+                    game.cat.vy = 0;
+                    game.cat.onGround = true;
                     break;
                 }
             }
-            if(!prevOnGround && gameState.cat.onGround) land();
+            if(!prevOnGround && game.cat.onGround) land();
 
-            if(gameState.rooftops.at(-1).x < gameState.camera.x + canvas.width + 300){
-                gameState.rooftops.push({x:gameState.rooftops.at(-1).x + 130 + Math.random()*50, y:480-Math.random()*80, width:140+Math.random()*80, height:30});
+            // Add new rooftops with VARIABLE gaps
+            if(game.rooftops.at(-1).x < game.camera.x + canvas.width + 400){
+                game.rooftops.push({
+                    x: game.rooftops.at(-1).x + 160 + Math.random()*100, // 160–260px gap
+                    y: 480 - Math.random()*90,
+                    width: 140 + Math.random()*80,
+                    height: 30
+                });
             }
-            gameState.rooftops = gameState.rooftops.filter(r=>r.x > gameState.camera.x-300);
+            game.rooftops = game.rooftops.filter(r=>r.x > game.camera.x-400);
 
-            if(gameState.cat.y > 700){fall();gameState.gameOver=true;}
-            gameState.score = Math.floor(gameState.camera.x/10);
-            scoreElement.textContent = gameState.score;
+            if(game.cat.y > 720){
+                fall();
+                game.gameOver = true;
+                if(game.score > highScore){
+                    highScore = game.score;
+                    localStorage.setItem('catJumperHighScore', highScore);
+                    highscoreEl.textContent = highScore;
+                }
+            }
+            game.score = Math.floor(game.camera.x/10);
+            scoreEl.textContent = game.score;
         }
 
         function render(){
             ctx.clearRect(0,0,canvas.width,canvas.height);
-            gameState.rooftops.forEach(drawRooftop);
-            drawCat(gameState.cat);
-            if(gameState.gameOver){
-                ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            game.rooftops.forEach(drawRooftop);
+            drawCat(game.cat);
+            if(game.gameOver){
+                ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
                 ctx.fillStyle='#fff'; ctx.font='50px Arial'; ctx.textAlign='center';
                 ctx.fillText('You Fell!',canvas.width/2,canvas.height/2-40);
                 ctx.font='28px Arial';
                 ctx.fillText('Tap or press SPACE to try again',canvas.width/2,canvas.height/2+20);
+                if(game.score > highScore) ctx.fillText('NEW HIGH SCORE!',canvas.width/2,canvas.height/2-100);
             }
         }
 
         function resetGame(){
             generateRooftops();
-            gameState.cat.x = 150;
-            gameState.cat.y = gameState.rooftops[0].y - gameState.cat.height;
-            gameState.cat.vy = gameState.cat.vx = 0;
-            gameState.cat.onGround = true;
-            gameState.camera.x = gameState.score = 0;
-            gameState.gameOver = false;
+            game.cat.x = 150;
+            game.cat.y = game.rooftops[0].y - game.cat.height;
+            game.cat.vy = game.cat.vx = 0;
+            game.cat.onGround = true;
+            game.camera.x = game.score = 0;
+            game.gameOver = false;
         }
 
         function loop(){update();render();requestAnimationFrame(loop);}
@@ -140,39 +183,3 @@
     </script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scottish Fold Cat Jumper</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 100%);
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        canvas {
-            border: 2px solid #333;
-            background: linear-gradient(to bottom, #87CEEB 70%, #228B22 100%);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            max-width: 100%;
-            max-height: 100vh;
-        }
-        .instructions {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #333;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.
