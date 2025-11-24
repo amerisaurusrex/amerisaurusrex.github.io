@@ -48,7 +48,7 @@
 </head>
 <body>
     <div class="instructions">
-        SPACE / UP / TAP to jump! Avoid falling!
+        SPACE / UP / TAP to jump! 🐾 Avoid falling!
     </div>
     <div class="score">Score: <span id="score">0</span></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -58,151 +58,306 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
 
-        // YOUR CAT IMAGE (hosted on a free CDN so it always works)
-        const catImg = new Image();
-        catImg.src = 'https://i.imgur.com/3jK8o8Z.png';  // ← Your exact cat, optimized & transparent
-
-        // Audio (same cute sounds)
+        // Audio setup
         let audioCtx = null;
         function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
-        function playChirp(f1, f2, t, type='sine', vol=0.2) {
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.setValueAtTime(f1, audioCtx.currentTime);
-            o.frequency.exponentialRampToValueAtTime(f2, audioCtx.currentTime + t);
-            o.type = type;
-            g.gain.setValueAtTime(vol, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + t);
-            o.start(); o.stop(audioCtx.currentTime + t);
-        }
-        const playJumpSound = () => playChirp(600, 1200, 0.15, 'sine', 0.25);
-        const playLandSound = () => playChirp(300, 150, 0.2, 'sawtooth', 0.2);
-        const playFallSound = () => playChirp(700, 150, 0.6, 'sine', 0.3);
 
-        // Game state (easy mode stays)
+        function playChirp(startFreq, endFreq, duration, type = 'sine', vol = 0.2) {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+            osc.type = type;
+            gain.gain.setValueAtTime(vol, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function playJumpSound() {
+            playChirp(600, 1200, 0.15, 'sine', 0.25);
+        }
+
+        function playLandSound() {
+            playChirp(300, 150, 0.2, 'sawtooth', 0.2);
+        }
+
+        function playFallSound() {
+            playChirp(700, 150, 0.6, 'sine', 0.3);
+        }
+
+        // Game state - easier settings
         let gameState = {
-            cat: { x:100, y:400, width:80, height:70, vx:0, vy:0, onGround:false,
-                   jumpPower:-20, gravity:0.7, speed:2.5 },
-            rooftops: [], camera:{x:0}, score:0, gameOver:false, keys:{}
+            cat: {
+                x: 100,
+                y: 400,
+                width: 60,
+                height: 50,
+                vx: 0,
+                vy: 0,
+                onGround: false,
+                jumpPower: -20,  // Higher jump
+                gravity: 0.7,    // Gentler gravity
+                speed: 2.5       // Slower forward speed
+            },
+            rooftops: [],
+            camera: { x: 0 },
+            score: 0,
+            gameOver: false,
+            keys: {}
         };
+
         let prevOnGround = false;
 
+        // Generate initial rooftops (wider, closer, less height variation)
         function generateRooftops() {
             gameState.rooftops = [];
-            for(let i=0;i<20;i++) gameState.rooftops.push({
-                x:i*160+200, y:480-Math.random()*80, width:140+Math.random()*80, height:30
-            });
+            for (let i = 0; i < 20; i++) {
+                gameState.rooftops.push({
+                    x: i * 160 + 200,
+                    y: 480 - Math.random() * 80,  // 400-480, tighter range
+                    width: 140 + Math.random() * 80,  // Wider: 140-220
+                    height: 30
+                });
+            }
         }
 
-        // Input
-        window.addEventOn('keydown', e=> {gameState.keys[e.code]=true; initAudio();});
-        window.addEventOn('keyup', e=> gameState.keys[e.code]=false);
-        canvas.addEventListener('touchstart', e=>{ e.preventDefault(); initAudio();
-            if(gameState.gameOver) resetGame();
-            else if(gameState.cat.onGround){ gameState.cat.vy=gameState.cat.jumpPower; gameState.cat.onGround=false; playJumpSound(); }
-        }, {passive:false});
+        // Input handling
+        window.addEventListener('keydown', (e) => {
+            gameState.keys[e.code] = true;
+            initAudio();
+        });
+        window.addEventListener('keyup', (e) => {
+            gameState.keys[e.code] = false;
+        });
 
-        // Draw cat (now your gorgeous image with a soft glow)
+        // Touch support for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            if (gameState.gameOver) {
+                resetGame();
+                return;
+            }
+            if (gameState.cat.onGround) {
+                gameState.cat.vy = gameState.cat.jumpPower;
+                gameState.cat.onGround = false;
+                playJumpSound();
+            }
+        }, { passive: false });
+
+        // Draw simple white Scottish Fold cat
         function drawCat(cat) {
-            const x = cat.x - gameState.camera.x;
-            const y = cat.y;
             ctx.save();
-            ctx.shadowColor = '#ffffff';
-            ctx.shadowBlur = 25;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.drawImage(catImg, x-10, y-10, cat.width+20, cat.height+20); // slight enlargement + glow
+            ctx.translate(cat.x - gameState.camera.x, cat.y);
+
+            // Body (white fluffy)
+            ctx.fillStyle = '#F5F5F5';
+            ctx.shadowColor = '#FFF';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(30, 25, 25, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.beginPath();
+            ctx.ellipse(30, 10, 20, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Folded ears (Scottish Fold style)
+            ctx.fillStyle = '#E8E8E8';
+            ctx.beginPath();
+            ctx.moveTo(15, 5);
+            ctx.lineTo(20, 12);
+            ctx.lineTo(25, 5);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(45, 5);
+            ctx.lineTo(40, 12);
+            ctx.lineTo(35, 5);
+            ctx.fill();
+
+            // Eyes (big and cute)
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(22, 8, 3, 0, Math.PI * 2);
+            ctx.arc(38, 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nose
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(30, 15, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail
+            ctx.strokeStyle = '#F5F5F5';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(55, 25);
+            ctx.quadraticCurveTo(70, 20, 75, 35);
+            ctx.stroke();
+
+            // Legs (simple)
+            ctx.fillStyle = '#F5F5F5';
+            ctx.fillRect(15, 35, 8, 12);
+            ctx.fillRect(37, 35, 8, 12);
+            ctx.fillRect(45, 35, 8, 12);
+
             ctx.restore();
         }
 
-        function drawRooftop(r) {
-            const rx = r.x - gameState.camera.x;
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(rx, r.y, r.width, r.height);
-            ctx.fillStyle = '#A0522D'; ctx.fillRect(rx, r.y-5, r.width, 5);
+        // Draw rooftop
+        function drawRooftop(rooftop) {
+            const rx = rooftop.x - gameState.camera.x;
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(rx, rooftop.y, rooftop.width, rooftop.height);
+
+            // Rooftop edge
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(rx, rooftop.y - 5, rooftop.width, 5);
+
+            // Simple pattern
             ctx.fillStyle = '#654321';
-            for(let i=0;i<r.width;i+=20) ctx.fillRect(rx+i, r.y, 10, 5);
+            for (let i = 0; i < rooftop.width; i += 20) {
+                ctx.fillRect(rx + i, rooftop.y, 10, 5);
+            }
         }
 
+        // Update game logic
         function update() {
-            if(gameState.gameOver){
-                if(gameState.keys['Space']||gameState.keys['ArrowUp']) resetGame();
+            if (gameState.gameOver) {
+                if (gameState.keys['Space'] || gameState.keys['ArrowUp']) {
+                    resetGame();
+                }
                 return;
             }
+
+            // Track previous ground state for landing sound
             prevOnGround = gameState.cat.onGround;
 
-            if((gameState.keys['Space']||gameState.keys['ArrowUp'])&&gameState.cat.onGround){
+            // Input (keyboard jump)
+            if ((gameState.keys['Space'] || gameState.keys['ArrowUp']) && gameState.cat.onGround) {
                 gameState.cat.vy = gameState.cat.jumpPower;
                 gameState.cat.onGround = false;
                 playJumpSound();
             }
 
+            // Physics
             gameState.cat.vy += gameState.cat.gravity;
             gameState.cat.y += gameState.cat.vy;
-            gameState.cat.x += gameState.cat.speed;
+            gameState.cat.x += gameState.cat.speed + gameState.cat.vx;
+            gameState.cat.vx *= 0.8; // Friction
 
-            gameState.camera.x = Math.max(0, gameState.cat.x - canvas.width/2);
+            // Camera follow
+            gameState.camera.x = Math.max(0, gameState.cat.x - canvas.width / 2);
 
+            // Rooftop collisions
             gameState.cat.onGround = false;
-            for(let r of gameState.rooftops){
-                if(gameState.cat.x+gameState.cat.width > r.x && gameState.cat.x < r.x+r.width &&
-                   gameState.cat.y+gameState.cat.height > r.y && 
-                   gameState.cat.y+gameState.cat.height-gameState.cat.vy <= r.y+5 && gameState.cat.vy>0){
-                    gameState.cat.y = r.y - gameState.cat.height;
+            for (let rooftop of gameState.rooftops) {
+                if (gameState.cat.x + gameState.cat.width > rooftop.x &&
+                    gameState.cat.x < rooftop.x + rooftop.width &&
+                    gameState.cat.y + gameState.cat.height > rooftop.y &&
+                    gameState.cat.y + gameState.cat.height - gameState.cat.vy <= rooftop.y + 5 &&  // Slight leniency
+                    gameState.cat.vy > 0) {
+                    gameState.cat.y = rooftop.y - gameState.cat.height;
                     gameState.cat.vy = 0;
                     gameState.cat.onGround = true;
-                    break;
+                    break;  // Land on first valid
                 }
             }
-            if(!prevOnGround && gameState.cat.onGround) playLandSound();
 
-            if(gameState.rooftops[gameState.rooftops.length-1].x < gameState.camera.x + canvas.width + 300){
+            // Play land sound
+            if (!prevOnGround && gameState.cat.onGround) {
+                playLandSound();
+            }
+
+            // Generate more rooftops (closer gaps, wider)
+            if (gameState.rooftops[gameState.rooftops.length - 1].x < gameState.camera.x + canvas.width + 300) {
                 gameState.rooftops.push({
-                    x: gameState.rooftops.slice(-1)[0].x + 130 + Math.random()*50,
-                    y: 480 - Math.random()*80,
-                    width: 140 + Math.random()*80,
+                    x: gameState.rooftops[gameState.rooftops.length - 1].x + 130 + Math.random() * 50,
+                    y: 480 - Math.random() * 80,
+                    width: 140 + Math.random() * 80,
                     height: 30
                 });
             }
-            gameState.rooftops = gameState.rooftops.filter(r=>r.x > gameState.camera.x-200);
 
-            if(gameState.cat.y > 700){ playFallSound(); gameState.gameOver=true; }
+            // Remove old rooftops
+            gameState.rooftops = gameState.rooftops.filter(r => r.x > gameState.camera.x - 200);
 
-            gameState.score = Math.floor(gameState.camera.x/10);
+            // Fall detection (more lenient)
+            if (gameState.cat.y > 700) {
+                playFallSound();
+                gameState.gameOver = true;
+            }
+
+            // Score
+            gameState.score = Math.floor(gameState.camera.x / 10);
             scoreElement.textContent = gameState.score;
         }
 
-        function render(){
-            ctx.clearRect(0,0,canvas.width,canvas.height);
+        // Render
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw rooftops
             gameState.rooftops.forEach(drawRooftop);
+
+            // Draw cat
             drawCat(gameState.cat);
 
-            if(gameState.gameOver){
-                ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle='#fff'; ctx.font='48px Arial'; ctx.textAlign='center';
-                ctx.fillText('You Fell!', canvas.width/2, canvas.height/2-50);
-                ctx.font='24px Arial';
-                ctx.fillText('SPACE / UP / TAP to Restart', canvas.width/2, canvas.height/2+20);
+            if (gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFF';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('You Fell!', canvas.width / 2, canvas.height / 2 - 50);
+                ctx.font = '24px Arial';
+                ctx.fillText('SPACE / UP / TAP to Restart', canvas.width / 2, canvas.height / 2 + 20);
+                ctx.textAlign = 'left';
             }
         }
 
-        function resetGame(){
+        // Reset game
+        function resetGame() {
             generateRooftops();
+            // Start cat properly on first rooftop
             gameState.cat.x = 100;
             gameState.cat.y = gameState.rooftops[0].y - gameState.cat.height;
-            gameState.cat.vy = gameState.cat.vx = 0;
+            gameState.cat.vy = 0;
+            gameState.cat.vx = 0;
             gameState.cat.onGround = true;
-            gameState.camera.x = gameState.score = 0;
+            gameState.camera.x = 0;
+            gameState.score = 0;
             gameState.gameOver = false;
+            prevOnGround = true;
         }
 
-        function gameLoop(){ update(); render(); requestAnimationFrame(gameLoop); }
+        // Game loop
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
 
-        generateRooftops(); resetGame(); gameLoop();
+        // Start game
+        generateRooftops();
+        resetGame();  // Ensures proper start position
+        gameLoop();
     </script>
 </body>
 </html>
