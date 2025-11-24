@@ -44,6 +44,16 @@
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
         }
+        .image-note {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            max-width: 90%;
+        }
     </style>
 </head>
 <body>
@@ -52,17 +62,99 @@
     </div>
     <div class="score">Score: <span id="score">0</span></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="image-note">
+        💡 <strong>Custom Cat Image:</strong> Edit <code>catImg.src</code> in the JS below with your image URL/path (e.g., 'my-cat.png')!
+    </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
 
-        // Audio setup
+        // 🎨 YOUR CUSTOM CAT IMAGE HERE! 
+        // - Local file: 'images/my-scottish-fold.png' (put in same folder)
+        // - Online URL: 'https://example.com/cat.png'
+        // - PNG with transparent bg works best! Size ~100x80px ideal.
+        const catImg = new Image();
+        catImg.src = '';  // ← PASTE YOUR IMAGE PATH/URL HERE! Falls back to drawn cat if empty.
+
+        let useCustomImage = false;
+        catImg.onload = () => {
+            useCustomImage = true;
+            console.log('✅ Custom cat image loaded!');
+        };
+        catImg.onerror = () => {
+            console.log('⚠️ Using drawn cat (image failed to load)');
+        };
+
+        // Fallback drawn cat function (original cute vector)
+        function drawFallbackCat(cat) {
+            ctx.save();
+            ctx.translate(cat.x - gameState.camera.x, cat.y);
+
+            // Body (white fluffy)
+            ctx.fillStyle = '#F5F5F5';
+            ctx.shadowColor = '#FFF';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.ellipse(30, 25, 25, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.beginPath();
+            ctx.ellipse(30, 10, 20, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Folded ears
+            ctx.fillStyle = '#E8E8E8';
+            ctx.beginPath();
+            ctx.moveTo(15, 5);
+            ctx.lineTo(20, 12);
+            ctx.lineTo(25, 5);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(45, 5);
+            ctx.lineTo(40, 12);
+            ctx.lineTo(35, 5);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(22, 8, 3, 0, Math.PI * 2);
+            ctx.arc(38, 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nose
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(30, 15, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail
+            ctx.strokeStyle = '#F5F5F5';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(55, 25);
+            ctx.quadraticCurveTo(70, 20, 75, 35);
+            ctx.stroke();
+
+            // Legs
+            ctx.fillStyle = '#F5F5F5';
+            ctx.fillRect(15, 35, 8, 12);
+            ctx.fillRect(37, 35, 8, 12);
+            ctx.fillRect(45, 35, 8, 12);
+
+            ctx.restore();
+        }
+
+        // Audio setup (unchanged)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext || window.webkitAudioContext)();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
@@ -85,19 +177,11 @@
             osc.stop(now + duration);
         }
 
-        function playJumpSound() {
-            playChirp(600, 1200, 0.15, 'sine', 0.25);
-        }
+        function playJumpSound() { playChirp(600, 1200, 0.15, 'sine', 0.25); }
+        function playLandSound() { playChirp(300, 150, 0.2, 'sawtooth', 0.2); }
+        function playFallSound() { playChirp(700, 150, 0.6, 'sine', 0.3); }
 
-        function playLandSound() {
-            playChirp(300, 150, 0.2, 'sawtooth', 0.2);
-        }
-
-        function playFallSound() {
-            playChirp(700, 150, 0.6, 'sine', 0.3);
-        }
-
-        // Game state - easier settings
+        // Game state (unchanged)
         let gameState = {
             cat: {
                 x: 100,
@@ -107,9 +191,9 @@
                 vx: 0,
                 vy: 0,
                 onGround: false,
-                jumpPower: -20,  // Higher jump
-                gravity: 0.7,    // Gentler gravity
-                speed: 2.5       // Slower forward speed
+                jumpPower: -20,
+                gravity: 0.7,
+                speed: 2.5
             },
             rooftops: [],
             camera: { x: 0 },
@@ -120,20 +204,20 @@
 
         let prevOnGround = false;
 
-        // Generate initial rooftops (wider, closer, less height variation)
+        // Generate rooftops (unchanged)
         function generateRooftops() {
             gameState.rooftops = [];
             for (let i = 0; i < 20; i++) {
                 gameState.rooftops.push({
                     x: i * 160 + 200,
-                    y: 480 - Math.random() * 80,  // 400-480, tighter range
-                    width: 140 + Math.random() * 80,  // Wider: 140-220
+                    y: 480 - Math.random() * 80,
+                    width: 140 + Math.random() * 80,
                     height: 30
                 });
             }
         }
 
-        // Input handling
+        // Input (unchanged)
         window.addEventListener('keydown', (e) => {
             gameState.keys[e.code] = true;
             initAudio();
@@ -142,7 +226,6 @@
             gameState.keys[e.code] = false;
         });
 
-        // Touch support for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             initAudio();
@@ -157,87 +240,40 @@
             }
         }, { passive: false });
 
-        // Draw simple white Scottish Fold cat
+        // UPDATED: Draw cat (image or fallback)
         function drawCat(cat) {
+            const catX = cat.x - gameState.camera.x;
+            const catY = cat.y;
+
             ctx.save();
-            ctx.translate(cat.x - gameState.camera.x, cat.y);
-
-            // Body (white fluffy)
-            ctx.fillStyle = '#F5F5F5';
             ctx.shadowColor = '#FFF';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.ellipse(30, 25, 25, 20, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.shadowBlur = 20;  // Glow effect for both!
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
 
-            // Head
-            ctx.beginPath();
-            ctx.ellipse(30, 10, 20, 18, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Folded ears (Scottish Fold style)
-            ctx.fillStyle = '#E8E8E8';
-            ctx.beginPath();
-            ctx.moveTo(15, 5);
-            ctx.lineTo(20, 12);
-            ctx.lineTo(25, 5);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(45, 5);
-            ctx.lineTo(40, 12);
-            ctx.lineTo(35, 5);
-            ctx.fill();
-
-            // Eyes (big and cute)
-            ctx.fillStyle = '#333';
-            ctx.beginPath();
-            ctx.arc(22, 8, 3, 0, Math.PI * 2);
-            ctx.arc(38, 8, 3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Nose
-            ctx.fillStyle = '#FFB6C1';
-            ctx.beginPath();
-            ctx.arc(30, 15, 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Tail
-            ctx.strokeStyle = '#F5F5F5';
-            ctx.lineWidth = 12;
-            ctx.lineCap = 'round';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.moveTo(55, 25);
-            ctx.quadraticCurveTo(70, 20, 75, 35);
-            ctx.stroke();
-
-            // Legs (simple)
-            ctx.fillStyle = '#F5F5F5';
-            ctx.fillRect(15, 35, 8, 12);
-            ctx.fillRect(37, 35, 8, 12);
-            ctx.fillRect(45, 35, 8, 12);
+            if (useCustomImage && catImg.complete) {
+                ctx.drawImage(catImg, catX, catY, cat.width, cat.height);
+            } else {
+                drawFallbackCat(cat);
+            }
 
             ctx.restore();
         }
 
-        // Draw rooftop
+        // Draw rooftop (unchanged)
         function drawRooftop(rooftop) {
             const rx = rooftop.x - gameState.camera.x;
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(rx, rooftop.y, rooftop.width, rooftop.height);
-
-            // Rooftop edge
             ctx.fillStyle = '#A0522D';
             ctx.fillRect(rx, rooftop.y - 5, rooftop.width, 5);
-
-            // Simple pattern
             ctx.fillStyle = '#654321';
             for (let i = 0; i < rooftop.width; i += 20) {
                 ctx.fillRect(rx + i, rooftop.y, 10, 5);
             }
         }
 
-        // Update game logic
+        // Update (unchanged)
         function update() {
             if (gameState.gameOver) {
                 if (gameState.keys['Space'] || gameState.keys['ArrowUp']) {
@@ -246,46 +282,39 @@
                 return;
             }
 
-            // Track previous ground state for landing sound
             prevOnGround = gameState.cat.onGround;
 
-            // Input (keyboard jump)
             if ((gameState.keys['Space'] || gameState.keys['ArrowUp']) && gameState.cat.onGround) {
                 gameState.cat.vy = gameState.cat.jumpPower;
                 gameState.cat.onGround = false;
                 playJumpSound();
             }
 
-            // Physics
             gameState.cat.vy += gameState.cat.gravity;
             gameState.cat.y += gameState.cat.vy;
             gameState.cat.x += gameState.cat.speed + gameState.cat.vx;
-            gameState.cat.vx *= 0.8; // Friction
+            gameState.cat.vx *= 0.8;
 
-            // Camera follow
             gameState.camera.x = Math.max(0, gameState.cat.x - canvas.width / 2);
 
-            // Rooftop collisions
             gameState.cat.onGround = false;
             for (let rooftop of gameState.rooftops) {
                 if (gameState.cat.x + gameState.cat.width > rooftop.x &&
                     gameState.cat.x < rooftop.x + rooftop.width &&
                     gameState.cat.y + gameState.cat.height > rooftop.y &&
-                    gameState.cat.y + gameState.cat.height - gameState.cat.vy <= rooftop.y + 5 &&  // Slight leniency
+                    gameState.cat.y + gameState.cat.height - gameState.cat.vy <= rooftop.y + 5 &&
                     gameState.cat.vy > 0) {
                     gameState.cat.y = rooftop.y - gameState.cat.height;
                     gameState.cat.vy = 0;
                     gameState.cat.onGround = true;
-                    break;  // Land on first valid
+                    break;
                 }
             }
 
-            // Play land sound
             if (!prevOnGround && gameState.cat.onGround) {
                 playLandSound();
             }
 
-            // Generate more rooftops (closer gaps, wider)
             if (gameState.rooftops[gameState.rooftops.length - 1].x < gameState.camera.x + canvas.width + 300) {
                 gameState.rooftops.push({
                     x: gameState.rooftops[gameState.rooftops.length - 1].x + 130 + Math.random() * 50,
@@ -295,28 +324,21 @@
                 });
             }
 
-            // Remove old rooftops
             gameState.rooftops = gameState.rooftops.filter(r => r.x > gameState.camera.x - 200);
 
-            // Fall detection (more lenient)
             if (gameState.cat.y > 700) {
                 playFallSound();
                 gameState.gameOver = true;
             }
 
-            // Score
             gameState.score = Math.floor(gameState.camera.x / 10);
             scoreElement.textContent = gameState.score;
         }
 
-        // Render
+        // Render (unchanged except cat call)
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw rooftops
             gameState.rooftops.forEach(drawRooftop);
-
-            // Draw cat
             drawCat(gameState.cat);
 
             if (gameState.gameOver) {
@@ -332,10 +354,9 @@
             }
         }
 
-        // Reset game
+        // Reset (unchanged)
         function resetGame() {
             generateRooftops();
-            // Start cat properly on first rooftop
             gameState.cat.x = 100;
             gameState.cat.y = gameState.rooftops[0].y - gameState.cat.height;
             gameState.cat.vy = 0;
@@ -354,9 +375,9 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Start game
+        // Start
         generateRooftops();
-        resetGame();  // Ensures proper start position
+        resetGame();
         gameLoop();
     </script>
 </body>
