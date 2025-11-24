@@ -15,11 +15,14 @@
             background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 100%);
             font-family: Arial, sans-serif;
             overflow: hidden;
+            touch-action: manipulation;
         }
         canvas {
             border: 2px solid #333;
             background: linear-gradient(to bottom, #87CEEB 70%, #228B22 100%);
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: 100%;
+            max-height: 100vh;
         }
         .instructions {
             position: absolute;
@@ -45,7 +48,7 @@
 </head>
 <body>
     <div class="instructions">
-        Use SPACEBAR or UP ARROW to jump! Avoid falling off rooftops.
+        SPACE / UP / TAP to jump! 🐾 Avoid falling!
     </div>
     <div class="score">Score: <span id="score">0</span></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -55,7 +58,46 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
 
-        // Game state
+        // Audio setup
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playChirp(startFreq, endFreq, duration, type = 'sine', vol = 0.2) {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+            osc.type = type;
+            gain.gain.setValueAtTime(vol, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function playJumpSound() {
+            playChirp(600, 1200, 0.15, 'sine', 0.25);
+        }
+
+        function playLandSound() {
+            playChirp(300, 150, 0.2, 'sawtooth', 0.2);
+        }
+
+        function playFallSound() {
+            playChirp(700, 150, 0.6, 'sine', 0.3);
+        }
+
+        // Game state - easier settings
         let gameState = {
             cat: {
                 x: 100,
@@ -65,9 +107,9 @@
                 vx: 0,
                 vy: 0,
                 onGround: false,
-                jumpPower: -18,
-                gravity: 0.8,
-                speed: 3
+                jumpPower: -20,  // Higher jump
+                gravity: 0.7,    // Gentler gravity
+                speed: 2.5       // Slower forward speed
             },
             rooftops: [],
             camera: { x: 0 },
@@ -76,14 +118,16 @@
             keys: {}
         };
 
-        // Generate initial rooftops
+        let prevOnGround = false;
+
+        // Generate initial rooftops (wider, closer, less height variation)
         function generateRooftops() {
             gameState.rooftops = [];
             for (let i = 0; i < 20; i++) {
                 gameState.rooftops.push({
-                    x: i * 200 + 200,
-                    y: 500 - Math.random() * 100,
-                    width: 120 + Math.random() * 60,
+                    x: i * 160 + 200,
+                    y: 480 - Math.random() * 80,  // 400-480, tighter range
+                    width: 140 + Math.random() * 80,  // Wider: 140-220
                     height: 30
                 });
             }
@@ -92,10 +136,26 @@
         // Input handling
         window.addEventListener('keydown', (e) => {
             gameState.keys[e.code] = true;
+            initAudio();
         });
         window.addEventListener('keyup', (e) => {
             gameState.keys[e.code] = false;
         });
+
+        // Touch support for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            if (gameState.gameOver) {
+                resetGame();
+                return;
+            }
+            if (gameState.cat.onGround) {
+                gameState.cat.vy = gameState.cat.jumpPower;
+                gameState.cat.onGround = false;
+                playJumpSound();
+            }
+        }, { passive: false });
 
         // Draw simple white Scottish Fold cat
         function drawCat(cat) {
@@ -186,10 +246,14 @@
                 return;
             }
 
-            // Input
+            // Track previous ground state for landing sound
+            prevOnGround = gameState.cat.onGround;
+
+            // Input (keyboard jump)
             if ((gameState.keys['Space'] || gameState.keys['ArrowUp']) && gameState.cat.onGround) {
                 gameState.cat.vy = gameState.cat.jumpPower;
                 gameState.cat.onGround = false;
+                playJumpSound();
             }
 
             // Physics
@@ -207,20 +271,26 @@
                 if (gameState.cat.x + gameState.cat.width > rooftop.x &&
                     gameState.cat.x < rooftop.x + rooftop.width &&
                     gameState.cat.y + gameState.cat.height > rooftop.y &&
-                    gameState.cat.y + gameState.cat.height - gameState.cat.vy <= rooftop.y &&
+                    gameState.cat.y + gameState.cat.height - gameState.cat.vy <= rooftop.y + 5 &&  // Slight leniency
                     gameState.cat.vy > 0) {
                     gameState.cat.y = rooftop.y - gameState.cat.height;
                     gameState.cat.vy = 0;
                     gameState.cat.onGround = true;
+                    break;  // Land on first valid
                 }
             }
 
-            // Generate more rooftops
+            // Play land sound
+            if (!prevOnGround && gameState.cat.onGround) {
+                playLandSound();
+            }
+
+            // Generate more rooftops (closer gaps, wider)
             if (gameState.rooftops[gameState.rooftops.length - 1].x < gameState.camera.x + canvas.width + 300) {
                 gameState.rooftops.push({
-                    x: gameState.rooftops[gameState.rooftops.length - 1].x + 150 + Math.random() * 100,
-                    y: 500 - Math.random() * 120,
-                    width: 100 + Math.random() * 80,
+                    x: gameState.rooftops[gameState.rooftops.length - 1].x + 130 + Math.random() * 50,
+                    y: 480 - Math.random() * 80,
+                    width: 140 + Math.random() * 80,
                     height: 30
                 });
             }
@@ -228,8 +298,9 @@
             // Remove old rooftops
             gameState.rooftops = gameState.rooftops.filter(r => r.x > gameState.camera.x - 200);
 
-            // Fall detection
-            if (gameState.cat.y > canvas.height) {
+            // Fall detection (more lenient)
+            if (gameState.cat.y > 700) {
+                playFallSound();
                 gameState.gameOver = true;
             }
 
@@ -256,21 +327,24 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('You Fell!', canvas.width / 2, canvas.height / 2 - 50);
                 ctx.font = '24px Arial';
-                ctx.fillText('Press SPACE or UP to Restart', canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('SPACE / UP / TAP to Restart', canvas.width / 2, canvas.height / 2 + 20);
                 ctx.textAlign = 'left';
             }
         }
 
         // Reset game
         function resetGame() {
+            generateRooftops();
+            // Start cat properly on first rooftop
             gameState.cat.x = 100;
-            gameState.cat.y = 400;
+            gameState.cat.y = gameState.rooftops[0].y - gameState.cat.height;
             gameState.cat.vy = 0;
             gameState.cat.vx = 0;
+            gameState.cat.onGround = true;
             gameState.camera.x = 0;
             gameState.score = 0;
             gameState.gameOver = false;
-            generateRooftops();
+            prevOnGround = true;
         }
 
         // Game loop
@@ -282,6 +356,7 @@
 
         // Start game
         generateRooftops();
+        resetGame();  // Ensures proper start position
         gameLoop();
     </script>
 </body>
