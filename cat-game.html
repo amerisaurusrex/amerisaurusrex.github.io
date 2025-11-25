@@ -25,9 +25,11 @@
         const scoreEl = document.getElementById('score');
         const highscoreEl = document.getElementById('highscore');
 
+        // High score
         let highScore = parseInt(localStorage.getItem('catJumperHighScore') || '0');
         highscoreEl.textContent = highScore;
 
+        // Your cat
         const catImg = new Image();
         catImg.src = 'https://raw.githubusercontent.com/amerisaurusrex/amerisaurusrex.github.io/main/cat.png';
         let useCustomImage = false;
@@ -42,7 +44,7 @@
             ctx.restore();
         }
 
-        // REALISTIC CAT SOUNDS USING WEB AUDIO
+        // REALISTIC CAT MEOWS
         let audioCtx;
         function initAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}
         
@@ -52,37 +54,37 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine';
+            osc.type = 'triangle';
 
             if (type === 'jump') {
-                // Short, cute, varied meows
                 const variations = [
-                    {start:880, end:1320, dur:0.12, vol:0.22},
-                    {start:920, end:1100, dur:0.14, vol:0.20},
-                    {start:780, end:1400, dur:0.10, vol:0.25},
-                    {start:850, end:1250, dur:0.13, vol:0.23}
+                    {s:880,e:1350,d:0.11,v:0.24},
+                    {s:720,e:1100,d:0.14,v:0.22},
+                    {s:950,e:1300,d:0.10,v:0.26},
+                    {s:800,e:1200,d:0.13,v:0.23},
+                    {s:900,e:1400,d:0.09,v:0.25}
                 ];
                 const v = variations[Math.floor(Math.random()*variations.length)];
-                osc.frequency.setValueAtTime(v.start, now);
-                osc.frequency.exponentialRampToValueAtTime(v.end, now + v.dur);
-                gain.gain.setValueAtTime(v.vol, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + v.dur + 0.05);
-                osc.start(now); osc.stop(now + v.dur + 0.1);
+                osc.frequency.setValueAtTime(v.s, now);
+                osc.frequency.exponentialRampToValueAtTime(v.e, now + v.d);
+                gain.gain.setValueAtTime(v.v, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + v.d + 0.08);
+                osc.start(now); osc.stop(now + v.d + 0.1);
             }
             else if (type === 'fall') {
-                // Long, panicked "MREEEEEEOOOOOW!!"
-                osc.frequency.setValueAtTime(1100, now);
-                osc.frequency.exponentialRampToValueAtTime(300, now + 0.4);
-                osc.frequency.setValueAtTime(250, now + 0.45);
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
-                osc.start(now); osc.stop(now + 0.8);
+                // Dramatic falling "MREEEEEEEOW!!"
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.25);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.6);
+                osc.frequency.setValueAtTime(250, now + 0.65);
+                gain.gain.setValueAtTime(0.38, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.85);
+                osc.start(now); osc.stop(now + 0.9);
             }
         }
 
         const jump = () => meow('jump');
-        const fall = () => meow('fall');
-        const land = () => { /* soft thump optional */ };
+        const fallMeow = () => meow('fall');
 
         const game = {
             cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,
@@ -91,110 +93,18 @@
         };
         let prevOnGround = false;
 
-        function generateRooftops(){/* unchanged – same as previous version */}
-        function update(){/* unchanged – same progressive difficulty */}
-        function render(){/* unchanged */}
-        function resetGame(){/* unchanged */}
-       
-
-        // INPUT
-        window.addEventListener('keydown',e=>{game.keys[e.code]=true;initAudio();});
-        canvas.addEventListener('touchstart',e=>{e.preventDefault();initAudio();
-            if(game.gameOver)resetGame();
-            else if(game.cat.onGround){game.cat.vy=game.cat.jumpPower;game.cat.onGround=false;jump();}
-        });
-
-        // Paste the rest of the game logic from the previous working version here
-        // (rooftop generation, update(), render(), resetGame(), loop(), etc.)
-        // I'm keeping it short — just copy everything from my last full version and replace the sound section above!
-
-        // QUICK FULL VERSION: Replace your entire <script> with this one → instant cat meows!
-        // (Or just copy the meow() function above and replace your old jump()/fall() functions)
-
-        // YOUR CAT NOW MEOWS LIKE A REAL SCOTTISH FOLD
-        // Every jump = cute random "mrow!", "mew!", "mrrp!"
-        // Every fall = dramatic "MREEEEEOW!!" that gets everyone’s attention
-
-        generateRooftops(); resetGame();
-        function loop(){update();render();requestAnimationFrame(loop);}
-        loop();
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scottish Fold Cat Jumper</title>
-    <style>
-        body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(#87CEEB,#98D8C8);font-family:Arial;overflow:hidden}
-        canvas{border:2px solid #333;background:linear-gradient(#87CEEB 70%,#228B22);box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:100%;max-height:100vh}
-        .ui{position:absolute;top:20px;color:#333;font-weight:bold;text-shadow:1px 1px 2px #fff}
-        .instructions{left:50%;transform:translateX(-50%);font-size:18px}
-        .score{right:20px;font-size:24px}
-        .highscore{left:20px;font-size:18px}
-    </style>
-</head>
-<body>
-    <div class="ui instructions">SPACE / UP / TAP to jump!</div>
-    <div class="ui score">Score: <span id="score">0</span></div>
-    <div class="ui highscore">Best: <span id="highscore">0</span></div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const highscoreEl = document.getElementById('highscore');
-
-        // Load high score
-        let highScore = parseInt(localStorage.getItem('catJumperHighScore') || '0');
-        highscoreEl.textContent = highScore;
-
-        // Your cat — now using the correct raw GitHub URL
-        const catImg = new Image();
-        catImg.src = 'https://raw.githubusercontent.com/amerisaurusrex/amerisaurusrex.github.io/main/cat.png';
-        let useCustomImage = false;
-        catImg.onload = () => useCustomImage = true;
-
-        // Fallback cute cat
-        function drawFallbackCat(x, y) {
-            ctx.save();
-            ctx.translate(x + 40, y + 35);
-            ctx.fillStyle = '#f8f8f8'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 25;
-            ctx.beginPath(); ctx.ellipse(0, 0, 35, 28, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(0, -20, 28, 25, 0, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#0a0'; ctx.beginPath(); ctx.arc(-10,-22,5,0,Math.PI*2); ctx.arc(10,-22,5,0,Math.PI*2); ctx.fill();
-            ctx.restore();
-        }
-
-        // Audio
-        let audioCtx;
-        function initAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}
-        function play(s,f,t=0.15,v=0.25){
-            if(!audioCtx)return;
-            const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-            o.type='sine';o.frequency.setValueAtTime(s,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(f,audioCtx.currentTime+t);
-            g.gain.setValueAtTime(v,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+t);
-            o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+t);
-        }
-        const jump=()=>play(600,1200,0.15,0.25);
-        const land=()=>play(300,150,0.2,0.2);
-        const fall=()=>play(700,100,0.7,0.3);
-
-        const game = {
-            cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,jumpPower:-20.5,gravity:0.75,speed:2.8},
-            rooftops:[],camera:{x:0},score:0,gameOver:false,keys:{}
-        };
-        let prevOnGround = false;
-
         function generateRooftops(){
             game.rooftops = [];
-            for(let i=0;i<30;i++){
+            for(let i=0;i<40;i++){
+                const progress = i/40;
+                const minGap = 160 + progress*140;
+                const maxGap = 220 + progress*180;
+                const gap = minGap + Math.random()*(maxGap-minGap);
+                const heightVar = 90 + progress*100;
                 game.rooftops.push({
-                    x: i===0 ? 200 : game.rooftops[i-1].x + 160 + Math.random()*100, // VARIABLE GAPS: 160–260px
-                    y: 480 - Math.random()*90,
-                    width: 140 + Math.random()*80,
+                    x: i===0 ? 200 : game.rooftops[i-1].x + gap,
+                    y: 480 - (Math.random()-0.5)*heightVar,
+                    width: 130 + Math.random()*90,
                     height: 30
                 });
             }
@@ -210,8 +120,7 @@
         function drawCat(c){
             const x = c.x - game.camera.x - 15;
             const y = c.y - 10;
-            ctx.save();
-            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30;
+            ctx.save(); ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 35;
             if(useCustomImage && catImg.complete){
                 ctx.drawImage(catImg, x, y, c.width+30, c.height+30);
             }else{
@@ -231,10 +140,16 @@
                 if(game.keys['Space']||game.keys['ArrowUp']) resetGame();
                 return;
             }
+
+            const difficulty = game.score / 500;
+            game.cat.speed = game.baseSpeed + difficulty * 1.2;
+            game.cat.jumpPower = game.baseJump - difficulty * 1.5;
+
             prevOnGround = game.cat.onGround;
             if((game.keys['Space']||game.keys['ArrowUp'])&&game.cat.onGround){
                 game.cat.vy = game.cat.jumpPower; game.cat.onGround=false; jump();
             }
+
             game.cat.vy += game.cat.gravity;
             game.cat.y += game.cat.vy;
             game.cat.x += game.cat.speed;
@@ -250,21 +165,24 @@
                     break;
                 }
             }
-            if(!prevOnGround && game.cat.onGround) land();
 
-            // Add new rooftops with VARIABLE gaps
-            if(game.rooftops.at(-1).x < game.camera.x + canvas.width + 400){
+            if(game.rooftops.at(-1).x < game.camera.x + canvas.width + 500){
+                const progress = game.score / 1000;
+                const minGap = 160 + progress*140;
+                const maxGap = 220 + progress*180;
+                const gap = minGap + Math.random()*(maxGap-minGap);
+                const heightVar = 90 + progress*100;
                 game.rooftops.push({
-                    x: game.rooftops.at(-1).x + 160 + Math.random()*100, // 160–260px gap
-                    y: 480 - Math.random()*90,
-                    width: 140 + Math.random()*80,
+                    x: game.rooftops.at(-1).x + gap,
+                    y: 480 - (Math.random()-0.5)*heightVar,
+                    width: 130 + Math.random()*90,
                     height: 30
                 });
             }
-            game.rooftops = game.rooftops.filter(r=>r.x > game.camera.x-400);
+            game.rooftops = game.rooftops.filter(r=>r.x > game.camera.x-500);
 
             if(game.cat.y > 720){
-                fall();
+                fallMeow();
                 game.gameOver = true;
                 if(game.score > highScore){
                     highScore = game.score;
@@ -272,6 +190,7 @@
                     highscoreEl.textContent = highScore;
                 }
             }
+
             game.score = Math.floor(game.camera.x/10);
             scoreEl.textContent = game.score;
         }
@@ -281,12 +200,12 @@
             game.rooftops.forEach(drawRooftop);
             drawCat(game.cat);
             if(game.gameOver){
-                ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle='#fff'; ctx.font='50px Arial'; ctx.textAlign='center';
-                ctx.fillText('You Fell!',canvas.width/2,canvas.height/2-40);
+                ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle='#fff'; ctx.font='52px Arial'; ctx.textAlign='center';
+                ctx.fillText('You Fell!',canvas.width/2,canvas.height/2-50);
                 ctx.font='28px Arial';
                 ctx.fillText('Tap or press SPACE to try again',canvas.width/2,canvas.height/2+20);
-                if(game.score > highScore) ctx.fillText('NEW HIGH SCORE!',canvas.width/2,canvas.height/2-100);
+                if(game.score > highScore) ctx.fillText('NEW HIGH SCORE: '+game.score+'!',canvas.width/2,canvas.height/2-100);
             }
         }
 
@@ -296,6 +215,8 @@
             game.cat.y = game.rooftops[0].y - game.cat.height;
             game.cat.vy = game.cat.vx = 0;
             game.cat.onGround = true;
+            game.cat.speed = game.baseSpeed;
+            game.cat.jumpPower = game.baseJump;
             game.camera.x = game.score = 0;
             game.gameOver = false;
         }
