@@ -29,27 +29,27 @@
         let highScore = parseInt(localStorage.getItem('catJumperHighScore') || '0');
         highscoreEl.textContent = highScore;
 
-        // Cat image
+        // Load your cat
         const catImg = new Image();
         catImg.src = 'https://raw.githubusercontent.com/amerisaurusrex/amerisaurusrex.github.io/main/cat.png';
+        let catLoaded = false;
+        catImg.onload = () => catLoaded = true;
 
         // Game state
-        const game = {
-            cat: {x:150, y:400, w:90, h:80, vx:0, vy:0, onGround:false,
-                  baseJump:-20.5, jump:-20.5, gravity:0.75, baseSpeed:2.8, speed:2.8},
-            rooftops: [], camera:0, score:0, gameOver:false, keys:{}
-        };
+        const cat = {x:150, y:300, w:90, h:80, vx:0, vy:0, onGround:false};
+        const rooftops = [];
+        let cameraX = 0;
+        let score = 0;
+        let gameOver = false;
+        const keys = {};
 
-        let prevOnGround = false;
+        // Audio
         let audioCtx = null;
-
-        // Initialize audio
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            audioCtx.resume();
         }
 
-        // REALISTIC CAT MEOWS
         function meow(type = 'jump') {
             if (!audioCtx) return;
             const t = audioCtx.currentTime;
@@ -60,183 +60,162 @@
             gain.connect(audioCtx.destination);
 
             if (type === 'jump') {
-                const vars = [
-                    [880, 1350, 0.11, 0.24],
-                    [720, 1100, 0.14, 0.22],
-                    [950, 1300, 0.10, 0.26],
-                    [800, 1200, 0.13, 0.23]
-                ];
-                const [s, e, d, v] = vars[Math.floor(Math.random() * vars.length)];
+                const vars = [[880,1350,0.11,0.24],[750,1200,0.13,0.22],[900,1400,0.10,0.25]];
+                const [s,e,d,v] = vars[Math.floor(Math.random()*vars.length)];
                 osc.frequency.setValueAtTime(s, t);
-                osc.frequency.exponentialRampToValueAtTime(e, t + d);
+                osc.frequency.exponentialRampToValueAtTime(e, t+d);
                 gain.gain.setValueAtTime(v, t);
-                gain.gain.exponentialRampToValueAtTime(0.01, t + d + 0.08);
-                osc.start(t); osc.stop(t + d + 0.1);
-            } else { // fall
+                gain.gain.exponentialRampToValueAtTime(0.01, t+d+0.08);
+                osc.start(t); osc.stop(t+d+0.1);
+            } else {
                 osc.frequency.setValueAtTime(1200, t);
-                osc.frequency.exponentialRampToValueAtTime(600, t + 0.25);
-                osc.frequency.exponentialRampToValueAtTime(250, t + 0.65);
-                gain.gain.setValueAtTime(0.38, t);
-                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.85);
-                osc.start(t); osc.stop(t + 0.9);
+                osc.frequency.exponentialRampToValueAtTime(250, t+0.7);
+                gain.gain.setValueAtTime(0.4, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t+0.9);
+                osc.start(t); osc.stop(t+1);
             }
         }
 
         // Generate rooftops
         function generateRooftops() {
-            game.rooftops = [];
-            let x = 200;
-            for (let i = 0; i < 40; i++) {
-                const progress = i / 40;
-                const gap = 160 + progress * 140 + Math.random() * (60 + progress * 120);
-                const heightVar = 90 + progress * 100;
-                game.rooftops.push({
-                    x: x,
-                    y: 480 - (Math.random() - 0.5) * heightVar,
-                    w: 130 + Math.random() * 90,
-                    h: 30
-                });
-                x += gap;
+            rooftops.length = 0;
+            let x = 0;
+            for (let i = 0; i < 50; i++) {
+                const gap = 180 + Math.random() * 80;
+                const y = 400 + Math.random() * 100 - 50;
+                rooftops.push({x, y, w:160 + Math.random()*80, h:30});
+                x += gap + 160;
             }
         }
 
         // Input
-        window.addEventListener('keydown', e => { game.keys[e.code] = true; initAudio(); });
-        window.addEventListener('keyup', e => game.keys[e.code] = false);
+        window.addEventListener('keydown', e => { keys[e.code] = true; initAudio(); });
+        window.addEventListener('keyup', e => keys[e.code] = false);
         canvas.addEventListener('touchstart', e => {
             e.preventDefault();
             initAudio();
-            if (game.gameOver) resetGame();
-            else if (game.cat.onGround) { game.cat.vy = game.cat.jump; game.cat.onGround = false; meow('jump'); }
+            if (gameOver) reset();
+            else if (cat.onGround) { cat.vy = -18; cat.onGround = false; meow('jump'); }
         });
 
-        // Draw functions
         function drawCat() {
-            const x = game.cat.x - game.camera - 15;
-            const y = game.cat.y - 10;
+            const x = cat.x - cameraX;
+            const y = cat.y;
             ctx.save();
             ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 35;
-            if (catImg.complete) {
-                ctx.drawImage(catImg, x, y, game.cat.w + 30, game.cat.h + 30);
+            ctx.shadowBlur = 30;
+            if (catLoaded) {
+                ctx.drawImage(catImg, x-20, y-20, cat.w+40, cat.h+40);
             } else {
                 ctx.fillStyle = '#f8f8f8';
-                ctx.beginPath(); ctx.ellipse(x + 40, y + 35, 35, 28, 0, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(x + 40, y + 15, 28, 25, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(x+25, y+40, 40, 30, 0, 0, Math.PI*2);
+                ctx.ellipse(x+25, y+10, 30, 28, 0, 0, Math.PI*2);
+                ctx.fill();
             }
             ctx.restore();
         }
 
         function drawRooftop(r) {
-            const rx = r.x - game.camera;
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(rx, r.y, r.w, r.h);
-            ctx.fillStyle = '#A0522D'; ctx.fillRect(rx, r.y - 5, r.w, 5);
+            const x = r.x - cameraX;
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x, r.y, r.w, r.h);
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(x, r.y-5, r.w, 5);
         }
 
-        // Main update
         function update() {
-            if (game.gameOver) {
-                if (game.keys['Space'] || game.keys['ArrowUp']) resetGame();
+            if (gameOver) {
+                if (keys['Space'] || keys['ArrowUp']) reset();
                 return;
             }
 
-            // Progressive difficulty
-            const diff = game.score / 500;
-            game.cat.speed = game.baseSpeed + diff * 1.2;
-            game.cat.jump = game.baseJump - diff * 1.5;
-
-            if ((game.keys['Space'] || game.keys['ArrowUp']) && game.cat.onGround) {
-                game.cat.vy = game.cat.jump;
-                game.cat.onGround = false;
+            if ((keys['Space'] || keys['ArrowUp']) && cat.onGround) {
+                cat.vy = -18;
+                cat.onGround = false;
                 meow('jump');
             }
 
-            game.cat.vy += game.cat.gravity;
-            game.cat.y += game.cat.vy;
-            game.cat.x += game.cat.speed;
-            game.camera = Math.max(0, game.cat.x - 400);
+            cat.vy += 0.8;
+            cat.y += cat.vy;
+            cat.x += 3;
 
-            // Collision
-            prevOnGround = game.cat.onGround;
-            game.cat.onGround = false;
-            for (const r of game.rooftops) {
-                if (game.cat.x + game.cat.w > r.x && game.cat.x < r.x + r.w &&
-                    game.cat.y + game.cat.h > r.y && game.cat.y + game.cat.h - game.cat.vy <= r.y + 5 && game.cat.vy > 0) {
-                    game.cat.y = r.y - game.cat.h;
-                    game.cat.vy = 0;
-                    game.cat.onGround = true;
-                    break;
+            cameraX = cat.x - 300;
+
+            cat.onGround = false;
+            for (const r of rooftops) {
+                if (cat.x + cat.w > r.x && cat.x < r.x + r.w &&
+                    cat.y + cat.h > r.y && cat.y + cat.h < r.y + r.h + 20 &&
+                    cat.vy > 0) {
+                    cat.y = r.y - cat.h;
+                    cat.vy = 0;
+                    cat.onGround = true;
                 }
             }
 
-            // Generate new rooftops
-            const last = game.rooftops[game.rooftops.length - 1];
-            if (last.x < game.camera + 1000) {
-                const progress = game.score / 1000;
-                const gap = 160 + progress * 140 + Math.random() * (100 + progress * 120);
-                const heightVar = 90 + progress * 100;
-                game.rooftops.push({
-                    x: last.x + gap,
-                    y: 480 - (Math.random() - 0.5) * heightVar,
-                    w: 130 + Math.random() * 90,
+            if (rooftops[rooftops.length-1].x < cameraX + 1000) {
+                const last = rooftops[rooftops.length-1];
+                const gap = 180 + Math.random() * 100;
+                rooftops.push({
+                    x: last.x + last.w + gap,
+                    y: 400 + Math.random() * 100 - 50,
+                    w: 160 + Math.random()*80,
                     h: 30
                 });
             }
 
-            game.rooftops = game.rooftops.filter(r => r.x > game.camera - 600);
-
-            if (game.cat.y > 720) {
+            if (cat.y > 700) {
                 meow('fall');
-                game.gameOver = true;
-                if (game.score > highScore) {
-                    highScore = game.score;
+                gameOver = true;
+                if (score > highScore) {
+                    highScore = score;
                     localStorage.setItem('catJumperHighScore', highScore);
                     highscoreEl.textContent = highScore;
                 }
             }
 
-            game.score = Math.floor(game.camera / 10);
-            scoreEl.textContent = game.score;
+            score = Math.floor(cameraX / 10);
+            scoreEl.textContent = score;
         }
 
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            game.rooftops.forEach(drawRooftop);
+            rooftops.forEach(r => { if (r.x - cameraX > -200 && r.x - cameraX < 1000) drawRooftop(r); });
             drawCat();
 
-            if (game.gameOver) {
-                ctx.fillStyle = 'rgba(0,0,0,0.85)';
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#fff';
-                ctx.font = '52px Arial';
+                ctx.font = '50px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('You Fell!', canvas.width/2, canvas.height/2 - 50);
+                ctx.fillText('You Fell!', canvas.width/2, canvas.height/2 - 40);
                 ctx.font = '28px Arial';
-                ctx.fillText('Tap or press SPACE to try again', canvas.width/2, canvas.height/2 + 20);
-                if (game.score > highScore) ctx.fillText('NEW HIGH SCORE: ' + game.score + '!', canvas.width/2, canvas.height/2 - 100);
+                ctx.fillText('Press SPACE or TAP to restart', canvas.width/2, canvas.height/2 + 20);
             }
         }
 
-        function resetGame() {
+        function reset() {
             generateRooftops();
-            game.cat.x = 150;
-            game.cat.y = game.rooftops[0].y - game.cat.h;
-            game.cat.vy = 0;
-            game.cat.onGround = true;
-            game.cat.speed = game.baseSpeed;
-            game.cat.jump = game.baseJump;
-            game.camera = game.score = 0;
-            game.gameOver = false;
+            cat.x = 150;
+            cat.y = rooftops[0].y - cat.h;
+            cat.vy = 0;
+            cat.onGround = true;
+            cameraX = 0;
+            score = 0;
+            gameOver = false;
         }
 
         function loop() {
             update();
             render();
-            requestAnimationFrame(loop);
+            request
+
+AnimationFrame(loop);
         }
 
         generateRooftops();
-        resetGame();
+        reset();
         loop();
     </script>
 </body>
