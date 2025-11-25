@@ -25,18 +25,20 @@
         const scoreEl = document.getElementById('score');
         const highscoreEl = document.getElementById('highscore');
 
-        // High score
+        // Load high score
         let highScore = parseInt(localStorage.getItem('catJumperHighScore') || '0');
         highscoreEl.textContent = highScore;
 
-        // Your cat (perfectly working)
+        // Your cat — now using the correct raw GitHub URL
         const catImg = new Image();
         catImg.src = 'https://raw.githubusercontent.com/amerisaurusrex/amerisaurusrex.github.io/main/cat.png';
         let useCustomImage = false;
         catImg.onload = () => useCustomImage = true;
 
+        // Fallback cute cat
         function drawFallbackCat(x, y) {
-            ctx.save(); ctx.translate(x + 40, y + 35);
+            ctx.save();
+            ctx.translate(x + 40, y + 35);
             ctx.fillStyle = '#f8f8f8'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 25;
             ctx.beginPath(); ctx.ellipse(0, 0, 35, 28, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(0, -20, 28, 25, 0, 0, Math.PI*2); ctx.fill();
@@ -59,24 +61,17 @@
         const fall=()=>play(700,100,0.7,0.3);
 
         const game = {
-            cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,
-                 baseJump:-20.5, jumpPower:-20.5, gravity:0.75, baseSpeed:2.8, speed:2.8},
+            cat:{x:150,y:400,width:90,height:80,vx:0,vy:0,onGround:false,jumpPower:-20.5,gravity:0.75,speed:2.8},
             rooftops:[],camera:{x:0},score:0,gameOver:false,keys:{}
         };
         let prevOnGround = false;
 
         function generateRooftops(){
             game.rooftops = [];
-            for(let i=0;i<40;i++){
-                const progress = i/40;
-                const minGap = 160 + progress*120;    // 160 → 280+
-                const maxGap = 200 + progress*160;    // 200 → 360+
-                const gap = minGap + Math.random()*(maxGap-minGap);
-                const heightVar = 80 + progress*80;   // more chaotic as you go
-
+            for(let i=0;i<30;i++){
                 game.rooftops.push({
-                    x: i===0 ? 200 : game.rooftops[i-1].x + gap,
-                    y: 480 - (Math.random()-0.5)*heightVar,
+                    x: i===0 ? 200 : game.rooftops[i-1].x + 160 + Math.random()*100, // VARIABLE GAPS: 160–260px
+                    y: 480 - Math.random()*90,
                     width: 140 + Math.random()*80,
                     height: 30
                 });
@@ -93,7 +88,8 @@
         function drawCat(c){
             const x = c.x - game.camera.x - 15;
             const y = c.y - 10;
-            ctx.save(); ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 35;
+            ctx.save();
+            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30;
             if(useCustomImage && catImg.complete){
                 ctx.drawImage(catImg, x, y, c.width+30, c.height+30);
             }else{
@@ -113,20 +109,13 @@
                 if(game.keys['Space']||game.keys['ArrowUp']) resetGame();
                 return;
             }
-
-            // PROGRESSIVE DIFFICULTY BASED ON SCORE
-            const difficulty = game.score / 500; // ramps up every ~500 points
-            game.cat.speed = game.baseSpeed + difficulty * 1.2;
-            game.cat.jumpPower = game.baseJump - difficulty * 1.5; // jump gets weaker
-            game.cat.vy += game.cat.gravity;
-            game.cat.y += game.cat.vy;
-            game.cat.x += game.cat.speed;
-
             prevOnGround = game.cat.onGround;
             if((game.keys['Space']||game.keys['ArrowUp'])&&game.cat.onGround){
                 game.cat.vy = game.cat.jumpPower; game.cat.onGround=false; jump();
             }
-
+            game.cat.vy += game.cat.gravity;
+            game.cat.y += game.cat.vy;
+            game.cat.x += game.cat.speed;
             game.camera.x = Math.max(0, game.cat.x - canvas.width/2);
 
             game.cat.onGround = false;
@@ -141,22 +130,16 @@
             }
             if(!prevOnGround && game.cat.onGround) land();
 
-            // Dynamic rooftop generation with increasing challenge
-            if(game.rooftops.at(-1).x < game.camera.x + canvas.width + 500){
-                const progress = game.score / 1000;
-                const minGap = 160 + progress*140;
-                const maxGap = 220 + progress*180;
-                const gap = minGap + Math.random()*(maxGap-minGap);
-                const heightVar = 90 + progress*100;
-
+            // Add new rooftops with VARIABLE gaps
+            if(game.rooftops.at(-1).x < game.camera.x + canvas.width + 400){
                 game.rooftops.push({
-                    x: game.rooftops.at(-1).x + gap,
-                    y: 480 - (Math.random()-0.5)*heightVar,
-                    width: 130 + Math.random()*90,
+                    x: game.rooftops.at(-1).x + 160 + Math.random()*100, // 160–260px gap
+                    y: 480 - Math.random()*90,
+                    width: 140 + Math.random()*80,
                     height: 30
                 });
             }
-            game.rooftops = game.rooftops.filter(r=>r.x > game.camera.x-500);
+            game.rooftops = game.rooftops.filter(r=>r.x > game.camera.x-400);
 
             if(game.cat.y > 720){
                 fall();
@@ -167,7 +150,6 @@
                     highscoreEl.textContent = highScore;
                 }
             }
-
             game.score = Math.floor(game.camera.x/10);
             scoreEl.textContent = game.score;
         }
@@ -177,12 +159,12 @@
             game.rooftops.forEach(drawRooftop);
             drawCat(game.cat);
             if(game.gameOver){
-                ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle='#fff'; ctx.font='52px Arial'; ctx.textAlign='center';
-                ctx.fillText('You Fell!',canvas.width/2,canvas.height/2-50);
+                ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle='#fff'; ctx.font='50px Arial'; ctx.textAlign='center';
+                ctx.fillText('You Fell!',canvas.width/2,canvas.height/2-40);
                 ctx.font='28px Arial';
                 ctx.fillText('Tap or press SPACE to try again',canvas.width/2,canvas.height/2+20);
-                if(game.score > highScore) ctx.fillText('NEW HIGH SCORE: '+game.score+'!',canvas.width/2,canvas.height/2-100);
+                if(game.score > highScore) ctx.fillText('NEW HIGH SCORE!',canvas.width/2,canvas.height/2-100);
             }
         }
 
@@ -192,8 +174,6 @@
             game.cat.y = game.rooftops[0].y - game.cat.height;
             game.cat.vy = game.cat.vx = 0;
             game.cat.onGround = true;
-            game.cat.speed = game.baseSpeed;
-            game.cat.jumpPower = game.baseJump;
             game.camera.x = game.score = 0;
             game.gameOver = false;
         }
